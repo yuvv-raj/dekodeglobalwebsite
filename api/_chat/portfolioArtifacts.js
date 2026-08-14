@@ -7,6 +7,13 @@ const allEvidenceIds = [
   ...(companyKnowledge.caseStudies || []).map((item) => item.id),
   ...(companyKnowledge.portfolioProjects || []).map((item) => item.id),
 ];
+
+function isCaseStudyOnlyQuestion(question) {
+  const normalized = String(question || '').toLowerCase();
+  const asksForCaseStudies = /\bcase\s+stud(?:y|ies)\b|\bsuccess\s+stor(?:y|ies)\b/.test(normalized);
+  const alsoAsksForPortfolio = /\bportfolio\b|\bprojects?\b|\bpast\s+work\b|\bprevious\s+work\b|\byour\s+work\b|\bwork\s+examples?\b/.test(normalized);
+  return asksForCaseStudies && !alsoAsksForPortfolio;
+}
 const evidenceById = new Map([
   ...(companyKnowledge.caseStudies || []).map((item) => [item.id, {
     id: item.id,
@@ -44,7 +51,10 @@ export function buildVerifiedPortfolioArtifacts(question, verifiedIntent, matche
     .filter((id) => caseStudyIds.has(id) || portfolioIds.has(id));
   const matchedIds = matches.map(idFromMatch).filter(Boolean);
   const broadRequest = isProjectEvidenceQuestion(question) && explicitIds.length === 0;
-  const itemIds = [...new Set(broadRequest ? allEvidenceIds : [...explicitIds, ...matchedIds])];
+  const broadIds = isCaseStudyOnlyQuestion(question)
+    ? [...caseStudyIds]
+    : allEvidenceIds;
+  const itemIds = [...new Set(broadRequest ? broadIds : [...explicitIds, ...matchedIds])];
   const items = itemIds.map((id) => evidenceById.get(id)).filter(Boolean);
   if (items.length === 0) return [];
 

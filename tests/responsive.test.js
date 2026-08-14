@@ -15,6 +15,7 @@ const meetingScheduler = await readFile(new URL('../src/components/MeetingSchedu
 const bookingSummary = await readFile(new URL('../src/components/BookingSummary.jsx', import.meta.url), 'utf8');
 const typewriterText = await readFile(new URL('../src/components/TypewriterText.jsx', import.meta.url), 'utf8');
 const companyKnowledgePanel = await readFile(new URL('../src/components/CompanyKnowledgePanel.jsx', import.meta.url), 'utf8');
+const inlinePortfolioAccordion = await readFile(new URL('../src/components/InlinePortfolioAccordion.jsx', import.meta.url), 'utf8');
 
 test('uses dynamic viewport units and safe-area spacing for app and voice surfaces', () => {
   assert.match(indexCss, /height:\s*100dvh/);
@@ -292,6 +293,7 @@ test('uses accessible peek accordions for capabilities, methodology, and service
 test('renders verified work as a transparent inline peek accordion', () => {
   assert.match(chatApp, /className="is-artifact"/);
   assert.match(chatApp, /<InlinePortfolioAccordion artifact=\{artifact\}/);
+  assert.doesNotMatch(inlinePortfolioAccordion, /item\.summary|item\.detail/);
   assert.match(indexCss, /\.inline-work-stack\s*\{[^}]*border-top:/s);
   assert.match(indexCss, /\.inline-work-artifact,[\s\S]*\.inline-work-content\s*\{\s*background:\s*transparent;/);
   assert.match(indexCss, /\.inline-work-panel\s*\{[^}]*grid-template-rows:\s*0fr/s);

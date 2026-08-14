@@ -53,10 +53,6 @@ export default function InlinePortfolioAccordion({ artifact, instanceId }) {
               <div className="inline-work-panel-inner">
                 <div className="inline-work-content">
                   <img src={images[item.id]} alt={`${item.name} DEKODE project`} />
-                  <div>
-                    <p>{item.summary}</p>
-                    {item.detail && <small>{item.detail}</small>}
-                  </div>
                 </div>
               </div>
             </div>

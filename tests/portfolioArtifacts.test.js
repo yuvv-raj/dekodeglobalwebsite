@@ -35,3 +35,26 @@ test('limits a named project artifact to approved matching evidence', () => {
   assert.deepEqual(artifact.items.map((item) => item.id), ['chauffr']);
   assert.match(artifact.items[0].summary, /mobile app/i);
 });
+
+test('keeps case-study requests separate from the broader portfolio', () => {
+  const caseStudyQuestion = 'Do you have any case studies?';
+  const [caseStudyArtifact] = buildVerifiedPortfolioArtifacts(
+    caseStudyQuestion,
+    classifyCompanyIntent(caseStudyQuestion),
+    retrieveCompanyKnowledge(caseStudyQuestion),
+  );
+  assert.deepEqual(caseStudyArtifact.items.map((item) => item.id), [
+    'food-manufacturing', 'primary-school',
+  ]);
+
+  const portfolioQuestion = 'Show me your portfolio and projects';
+  const [portfolioArtifact] = buildVerifiedPortfolioArtifacts(
+    portfolioQuestion,
+    classifyCompanyIntent(portfolioQuestion),
+    retrieveCompanyKnowledge(portfolioQuestion),
+  );
+  assert.deepEqual(portfolioArtifact.items.map((item) => item.id), [
+    'food-manufacturing', 'primary-school', 'attendme', 'chauffr',
+    'smart-loan-helper', 'smartbroker', 'recycled-market', 'estrado',
+  ]);
+});
