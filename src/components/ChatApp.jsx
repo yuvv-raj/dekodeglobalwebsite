@@ -9,6 +9,7 @@ import {
   ChevronDown,
   LockKeyhole,
   Sparkles,
+  Images,
   X,
 } from "lucide-react";
 import AnimationPanel from "./AnimationPanel";
@@ -20,6 +21,7 @@ import HeroScenery from "./HeroScenery";
 import DekodeVoiceEntry from "./voice/DekodeVoiceEntry";
 import DekodeVoiceSession from "./voice/DekodeVoiceSession";
 import MeetingScheduler from "./MeetingScheduler";
+import InlinePortfolioAccordion from "./InlinePortfolioAccordion";
 import { voiceConfig } from "../voice/config";
 import { BrowserSpeechToTextProvider } from "../voice/providers/browserSpeechToTextProvider";
 import { placeholderInterval, placeholderMessages } from "./chatComposerConfig";
@@ -167,6 +169,7 @@ export default function ChatApp({
   const [selectedMeetingSlotId, setSelectedMeetingSlotId] = useState(null);
   const [isVoiceOpen, setIsVoiceOpen] = useState(false);
   const [isVisualPanelExpanded, setIsVisualPanelExpanded] = useState(false);
+  const [expandedArtifactMessages, setExpandedArtifactMessages] = useState(() => new Set());
   const [isCompactLayout, setIsCompactLayout] = useState(
     () => window.matchMedia("(max-width: 1180px)").matches,
   );
@@ -191,11 +194,13 @@ export default function ChatApp({
           text: "Your proposal is open. Ask me about its process, workflow, constraints, or prototype.",
         },
       ]);
+      setExpandedArtifactMessages(new Set());
       setStep("proposal");
       setCompanyPanel(null);
       companyContextRef.current = createCompanyConversationContext();
     } else if (step === "proposal") {
       setMessages([]);
+      setExpandedArtifactMessages(new Set());
       setStep("centered");
     }
   // The transition is intentionally keyed only to proposal identity.
@@ -428,6 +433,7 @@ export default function ChatApp({
           companyTopic: fallbackResponse.topic,
           suggestions: result.suggestions || [],
           actions: result.actions || [],
+          artifacts: result.artifacts || [],
         },
       ]);
     } catch {
@@ -523,6 +529,7 @@ export default function ChatApp({
           companyTopic: result.topic,
           suggestions: result.suggestions || [],
           actions: result.actions || [],
+          artifacts: result.artifacts || [],
         },
       ]);
     } catch {
@@ -1093,7 +1100,7 @@ export default function ChatApp({
                         ) : (
                           msg.text
                         )}
-                        {msg.sender === "ai" && msg.suggestions?.length > 0 && (
+                        {msg.sender === "ai" && (msg.suggestions?.length > 0 || msg.artifacts?.length > 0) && (
                           <motion.div
                             initial={{ opacity: 0, y: 6 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -1126,8 +1133,40 @@ export default function ChatApp({
                                 {suggestion.label}
                               </button>
                             ))}
+                            {msg.artifacts?.map((artifact) => {
+                              const isExpanded = expandedArtifactMessages.has(msg.id);
+                              return (
+                                <button
+                                  key={artifact.id}
+                                  type="button"
+                                  className="is-artifact"
+                                  aria-expanded={isExpanded}
+                                  aria-controls={`artifact-stack-${msg.id}`}
+                                  onClick={() => setExpandedArtifactMessages((current) => {
+                                    const next = new Set(current);
+                                    if (next.has(msg.id)) next.delete(msg.id);
+                                    else next.add(msg.id);
+                                    return next;
+                                  })}
+                                >
+                                  <Images size={14} aria-hidden="true" />
+                                  {artifact.label}
+                                </button>
+                              );
+                            })}
                           </motion.div>
                         )}
+                        {msg.sender === "ai" && expandedArtifactMessages.has(msg.id) && msg.artifacts?.map((artifact) => (
+                          <motion.div
+                            id={`artifact-stack-${msg.id}`}
+                            key={artifact.id}
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            className="inline-work-artifact"
+                          >
+                            <InlinePortfolioAccordion artifact={artifact} instanceId={msg.id} />
+                          </motion.div>
+                        ))}
                         {msg.sender === "ai" && msg.actions?.length > 0 && (
                           <motion.div
                             initial={{ opacity: 0, y: 6 }}

@@ -1663,6 +1663,77 @@ h1, h2, h3, h4, h5, h6 {
   background: rgba(250,204,21,0.2);
 }
 
+.company-suggestion-chips button.is-artifact {
+  border-color: rgba(250, 204, 21, 0.42);
+  background: rgba(250, 204, 21, 0.1);
+  color: #fef3c7;
+}
+
+.inline-work-artifact,
+.inline-work-stack,
+.inline-work-item,
+.inline-work-panel,
+.inline-work-panel-inner,
+.inline-work-content {
+  background: transparent;
+}
+
+.inline-work-artifact {
+  width: 100%;
+  margin-top: 0.65rem;
+  overflow: hidden;
+}
+
+.inline-work-stack {
+  width: 100%;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.inline-work-item + .inline-work-item {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.inline-work-item > h3 { margin: 0; }
+
+.inline-work-header {
+  width: 100%;
+  min-height: 52px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.65rem 0;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.inline-work-header:hover { color: #fef3c7; }
+.inline-work-header > svg { transition: transform 0.22s ease, color 0.22s ease; }
+.inline-work-item.is-open .inline-work-header > svg { transform: rotate(180deg); color: var(--color-accent-yellow); }
+.inline-work-index { color: var(--color-accent-yellow); font-size: 0.62rem; font-weight: 700; }
+.inline-work-heading { min-width: 0; display: grid; gap: 0.12rem; }
+.inline-work-heading strong { font-size: 0.78rem; overflow-wrap: anywhere; }
+.inline-work-heading small { color: rgba(255, 255, 255, 0.52); font-size: 0.58rem; }
+
+.inline-work-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 0.26s ease, opacity 0.2s ease;
+}
+
+.inline-work-item.is-open .inline-work-panel { grid-template-rows: 1fr; opacity: 1; }
+.inline-work-panel-inner { min-height: 0; overflow: hidden; }
+.inline-work-content { display: grid; gap: 0.75rem; padding: 0 0 0.9rem; }
+.inline-work-content img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 6px; }
+.inline-work-content p { margin: 0; color: rgba(255, 255, 255, 0.78); font-size: 0.7rem; line-height: 1.55; }
+.inline-work-content small { display: block; margin-top: 0.4rem; color: rgba(255, 255, 255, 0.52); font-size: 0.62rem; line-height: 1.5; }
+
 /* Animations Content */
 .device-frame {
   width: 240px;

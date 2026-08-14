@@ -18,6 +18,7 @@ import {
   requestVertexCloudRun,
 } from './_chat/vertexCloudRun.js';
 import { isGroundedCompanyResult } from './_chat/responseGrounding.js';
+import { buildVerifiedPortfolioArtifacts } from './_chat/portfolioArtifacts.js';
 
 const MAX_QUESTION_LENGTH = 1_200;
 const MAX_HISTORY_MESSAGES = 12;
@@ -207,6 +208,7 @@ export default async function handler(request, response) {
     const memoryKind = result.intent === 'project_build' ? 'project' : result.intent === 'book_meeting' ? 'meeting' : 'company';
     const turn = beginConversationTurn(incomingMemory, question, memoryKind, interaction);
     const completed = completeConversationTurn(turn, result.answer, { mode: 'informational', action: null });
+    const artifacts = buildVerifiedPortfolioArtifacts(question, verifiedIntent, groundingMatches);
     return response.status(200).json({
       ok: true,
       ...result,
@@ -216,6 +218,7 @@ export default async function handler(request, response) {
         .slice(0, 4),
       ...responsePayload,
       conversation: completed,
+      artifacts,
       actions: result.action === 'open_calendar'
         ? [{ type: 'open_booking', label: 'View available times' }]
         : [],

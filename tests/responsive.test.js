@@ -288,3 +288,12 @@ test('uses accessible peek accordions for capabilities, methodology, and service
   assert.match(interactiveStyles, /\.peek-item\.is-open \.peek-panel\s*\{[^}]*grid-template-rows:\s*1fr/s);
   assert.match(interactiveStyles, /@media \(max-width: 600px\)[\s\S]*\.capability-peek-content,[\s\S]*\.industry-peek-content\s*\{[^}]*grid-template-columns:\s*1fr/);
 });
+
+test('renders verified work as a transparent inline peek accordion', () => {
+  assert.match(chatApp, /className="is-artifact"/);
+  assert.match(chatApp, /<InlinePortfolioAccordion artifact=\{artifact\}/);
+  assert.match(indexCss, /\.inline-work-stack\s*\{[^}]*border-top:/s);
+  assert.match(indexCss, /\.inline-work-artifact,[\s\S]*\.inline-work-content\s*\{\s*background:\s*transparent;/);
+  assert.match(indexCss, /\.inline-work-panel\s*\{[^}]*grid-template-rows:\s*0fr/s);
+  assert.match(indexCss, /\.inline-work-item\.is-open \.inline-work-panel\s*\{[^}]*grid-template-rows:\s*1fr/s);
+});
