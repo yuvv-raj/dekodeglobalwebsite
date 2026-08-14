@@ -11,10 +11,7 @@ const OUT_OF_SCOPE_PATTERNS = [
 
 const GREETING_PATTERNS = [/^(hello|hi|hey|thanks|thank you)\b[.!?\s]*$/i];
 
-export const MEETING_PROJECT_CLARIFICATION =
-  'Do you want to book a discovery call with DEKODE, or are you looking to build a meeting/calendar app?';
-
-const BOOKING_ACTION = /\b(book|schedule|reserve|arrange|set up)\b/i;
+const BOOKING_ACTION = /\b(book|schedule|reserve|arrange|set up|fix)\b/i;
 const BOOKING_OBJECT = /\b(meet|meeting|call|consultation|discovery call|talk)\b/i;
 const DUAL_USE_TERM = /\b(meet|meeting|call|calendar|booking|appointment|schedule|scheduling)\b/i;
 const PROJECT_ACTION = /\b(build|create|make|develop|design|launch|add|integrate)\b/i;
@@ -32,7 +29,7 @@ export function scoreCompetingIntents(message) {
   const hasProjectContext = PROJECT_CONTEXT.test(text);
   const isCapabilityQuestion = CAPABILITY_QUESTION.test(text);
   const hasBookingPair = hasBookingAction && hasBookingObject;
-  const hasExplicitBookingPurpose = /\b(?:book|schedule|reserve|arrange|set up)\b.{0,28}\b(?:discovery call|consultation|call|meeting)\b.{0,18}\b(?:with|to discuss|about|regarding)\b/i.test(text);
+  const hasExplicitBookingPurpose = /\b(?:book|schedule|reserve|arrange|set up|fix)\b.{0,28}\b(?:discovery call|consultation|call|meeting)\b.{0,18}\b(?:with|to discuss|about|regarding)\b/i.test(text);
   const hasBookingTarget = /\b(?:book|schedule|arrange|meet|meeting|call|talk)\b.{0,36}\b(?:with|to)\s+(?:dekode|you|your team|the team|someone|a person|a human)\b/i.test(text)
     || /\b(?:meet|meeting|call|talk)\b.{0,24}\b(?:someone|team|person|human)\b/i.test(text)
     || /\b(?:your|dekode)\s+(?:availability|slots?)\b/i.test(text);
@@ -84,12 +81,33 @@ export function scoreCompetingIntents(message) {
   };
 }
 
+function conversationConfirmsBooking(context = {}) {
+  const selectedSuggestion = context?.interaction?.type === 'suggestion'
+    && (context.interaction.intent === 'book_meeting' || context.interaction.action === 'open_calendar');
+  const memory = context?.conversation;
+  if (selectedSuggestion || memory?.booking?.requested || memory?.booking?.initiated || memory?.lastIntent === 'meeting') {
+    return true;
+  }
+  return (Array.isArray(memory?.recentMessages) ? memory.recentMessages : [])
+    .filter((entry) => entry?.role === 'user')
+    .slice(-4)
+    .some((entry) => scoreCompetingIntents(entry.text).route === 'meeting');
+}
+
+export function resolveCalendarIntent(message, context = {}) {
+  const current = scoreCompetingIntents(message);
+  if (current.route === 'project') return 'project';
+  if (current.route === 'meeting' || conversationConfirmsBooking(context)) return 'meeting';
+  return 'clarify';
+}
+
 const ORIGIN_PATTERNS = [
   /\bwhy\b.{0,32}\b(dekode|company|you)\b.{0,28}\b(start|started|found|founded|create|created|begin|began)\b/i,
   /\bwhy\b.{0,32}\b(start|started|found|founded|create|created)\b.{0,28}\b(dekode|company|you)\b/i,
 ];
 
 const CLEAR_EXTERNAL_QUESTION = /^(who|what|when|where|why|how)\b/i;
+const PORTFOLIO_QUESTION = /\b(?:projects?|portfolio|past work|previous work|show me (?:some of )?(?:your )?work|what (?:have|has) you built|what work (?:have you done|did you do)|case studies|success stories)\b/i;
 
 const COMPANY_CUES = [
   /\bdekode\b/i,
@@ -147,7 +165,7 @@ export function classifyCompanyIntent(message, context = {}) {
     (match.score > 0 || /^(what about|how about|and|also|tell me more|why|how|which|do you|can you)\b/i.test(text));
 
   const isShortCompanyTopic = SHORT_COMPANY_TOPICS.test(text);
-  const isCompanyRelated = hasCompanyCue || asksAboutSolution || asksAboutPortfolio || asksAboutVerifiedEntity || asksAboutKnownTopic || contextualFollowUp || isShortCompanyTopic;
+  const isCompanyRelated = hasCompanyCue || PORTFOLIO_QUESTION.test(text) || asksAboutSolution || asksAboutPortfolio || asksAboutVerifiedEntity || asksAboutKnownTopic || contextualFollowUp || isShortCompanyTopic;
 
   if (!isCompanyRelated && !match.topic && CLEAR_EXTERNAL_QUESTION.test(text)) {
     return { isCompanyRelated: false, topic: null, kind: 'out_of_scope' };
@@ -156,7 +174,7 @@ export function classifyCompanyIntent(message, context = {}) {
   return {
     isCompanyRelated,
     kind: isCompanyRelated ? 'company' : 'ambiguous',
-    topic: match.topic || (contextualFollowUp ? context.lastTopic : null) || 'company',
+    topic: PORTFOLIO_QUESTION.test(text) ? 'caseStudies' : match.topic || (contextualFollowUp ? context.lastTopic : null) || 'company',
     service: match.service,
     solutionArea: match.solutionArea,
     portfolioProject: match.portfolioProject,

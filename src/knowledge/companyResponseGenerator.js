@@ -3,6 +3,7 @@ import { findNamedOffering, findSolutionArea } from './knowledgeIndex.js';
 import { getPanelForTopic } from './visualPanelMapper.js';
 import { getSuggestedQuestions } from './suggestedQuestionGenerator.js';
 import { getKnowledgeGapResponse } from './knowledgeGapResponse.js';
+import { normalizeVisitorMessage } from './messageNormalization.js';
 
 const knowledge = loadCompanyKnowledge();
 const bullets = (items) => items.map((item) => `- ${item}`).join('\n');
@@ -17,11 +18,13 @@ function findLegalSection(document, message) {
 }
 
 function responseForTopic(topic, message, detectedService, detectedSolutionArea, detectedCaseStudy, detectedInitiative, detectedDevelopmentStep) {
+  const normalizedMessage = normalizeVisitorMessage(message);
   const service = detectedService || findNamedOffering(message);
   const solutionArea = detectedSolutionArea || findSolutionArea(message);
   const portfolioProject = knowledge.portfolioProjects?.find((project) =>
     message.toLowerCase().includes(project.name.toLowerCase()),
   );
+  const asksForPortfolio = /\b(?:projects?|portfolio|past work|previous work|show me (?:some of )?(?:your )?work|what (?:have|has) you built|what work (?:have you done|did you do))\b/i.test(normalizedMessage);
 
   if (detectedInitiative) {
     const regions = detectedInitiative.regions
@@ -77,6 +80,9 @@ function responseForTopic(topic, message, detectedService, detectedSolutionArea,
           return `${namedStudy.name} used ${namedStudy.platform} as its published solution platform.`;
         }
         return `${namedStudy.name} is a published DEKODE case study in ${namedStudy.industry}.\n\nChallenge: ${namedStudy.challenge}\n\nSolution: ${namedStudy.solution}\n\nOutcome: ${namedStudy.outcome}`;
+      }
+      if (asksForPortfolio) {
+        return `DEKODE's verified public portfolio includes:\n\n${bullets((knowledge.portfolioProjects || []).map((item) => `${item.name}: ${item.description}`))}\n\nPublished case studies:\n${bullets((knowledge.caseStudies || []).map((item) => `${item.name} (${item.industry}): ${item.outcome}`))}`;
       }
       return `DEKODE currently presents two published success stories:\n\n${bullets(knowledge.caseStudies.map((item) => `${item.name} (${item.industry}): ${item.outcome}`))}\n\nThese are the case studies confirmed in the public company information.`;
     }

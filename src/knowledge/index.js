@@ -1,6 +1,6 @@
 export {
   classifyCompanyIntent,
-  MEETING_PROJECT_CLARIFICATION,
+  resolveCalendarIntent,
   scoreCompetingIntents,
 } from './intentClassifier.js';
 export { normalizeVisitorMessage } from './messageNormalization.js';

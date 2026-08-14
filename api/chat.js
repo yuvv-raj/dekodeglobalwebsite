@@ -17,6 +17,7 @@ import {
   isVertexCloudRunConfigured,
   requestVertexCloudRun,
 } from './_chat/vertexCloudRun.js';
+import { isGroundedCompanyResult } from './_chat/responseGrounding.js';
 
 const MAX_QUESTION_LENGTH = 1_200;
 const MAX_HISTORY_MESSAGES = 12;
@@ -28,8 +29,8 @@ const rateLimit = new Map();
 
 export const config = { maxDuration: 60 };
 
-export function isGroundedVertexResult() {
-  return true;
+export function isGroundedVertexResult(result, question, matches) {
+  return isGroundedCompanyResult(result, question, matches);
 }
 
 const systemInstruction = `You are DEKODE's intelligent website consultant. Every response must be a JSON object with these fields: intent, confidence, action, topic, answer, suggestions.
@@ -196,7 +197,13 @@ export default async function handler(request, response) {
   const sensitiveRefusal = getSensitiveRequestRefusal(question);
 
   const sendResult = (modelResult, payload = {}) => {
-    const result = validateModelResponse(modelResult, question, { interaction, conversation: incomingMemory });
+    const { groundingMatches = [], ...responsePayload } = payload;
+    let result = validateModelResponse(modelResult, question, { interaction, conversation: incomingMemory });
+    if (!isGroundedCompanyResult(result, question, groundingMatches)) {
+      result = fallbackAfterProviderFailure(question, history, verifiedIntent, interaction);
+      responsePayload.provider = 'verified-grounding-fallback';
+      responsePayload.grounding = 'fallback';
+    }
     const memoryKind = result.intent === 'project_build' ? 'project' : result.intent === 'book_meeting' ? 'meeting' : 'company';
     const turn = beginConversationTurn(incomingMemory, question, memoryKind, interaction);
     const completed = completeConversationTurn(turn, result.answer, { mode: 'informational', action: null });
@@ -207,7 +214,7 @@ export default async function handler(request, response) {
       suggestions: (result.suggestions || [])
         .filter((suggestion) => !usedSuggestions.includes(suggestion.label.toLowerCase()))
         .slice(0, 4),
-      ...payload,
+      ...responsePayload,
       conversation: completed,
       actions: result.action === 'open_calendar'
         ? [{ type: 'open_booking', label: 'View available times' }]
@@ -245,6 +252,7 @@ export default async function handler(request, response) {
         model: result.model,
         retrievalMode: result.retrievalMode,
         provider: 'vertex-ai',
+        groundingMatches: matches,
       });
     } catch (error) {
       console.error('[DEKODE Chat] Vertex Cloud Run request failed.', error?.message);
@@ -270,7 +278,7 @@ export default async function handler(request, response) {
         if (geminiResponse.ok) {
           const candidate = extractModelCandidate(payload);
           if (isCompleteModelCandidate(candidate)) {
-            return sendResult(candidate.answer, { sources, model, provider: 'gemini-api' });
+            return sendResult(candidate.answer, { sources, model, provider: 'gemini-api', groundingMatches: matches });
           }
           lastFailure = { status: 502, reason: candidate.finishReason || 'EMPTY_RESPONSE' };
         } else {
@@ -286,5 +294,5 @@ export default async function handler(request, response) {
   }
 
   const fallback = fallbackAfterProviderFailure(question, history, verifiedIntent, interaction);
-  return sendResult(fallback, { sources, provider: 'verified-fallback' });
+  return sendResult(fallback, { sources, provider: 'verified-fallback', groundingMatches: matches });
 }

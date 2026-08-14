@@ -48,7 +48,7 @@ test('voice distinguishes DEKODE booking from a scheduling-product project', asy
   assert.equal(booking.action, 'offer_meeting');
   assert.equal(project.intent, 'project_discussion');
   assert.equal(ambiguous.intent, 'meeting_project_clarification');
-  assert.match(ambiguous.text, /book a discovery call with DEKODE.*build a meeting\/calendar app/i);
+  assert.match(ambiguous.text, /arrange time with DEKODE.*meeting and scheduling functionality/i);
 });
 
 test('unknown questions are bounded to DEKODE and project discovery', async () => {

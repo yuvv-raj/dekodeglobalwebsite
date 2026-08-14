@@ -20,11 +20,41 @@ test('parses structured JSON with or without a markdown fence', () => {
 
 test('allows calendar UI only for clear scheduling-with-DEKODE intent', () => {
   assert.equal(validateModelResponse(bookingResult, 'book ameeting').action, 'open_calendar');
+  assert.equal(validateModelResponse(bookingResult, 'fix a meeting').action, 'open_calendar');
+  assert.equal(validateModelResponse(bookingResult, 'bok a meting').action, 'open_calendar');
   assert.equal(validateModelResponse(bookingResult, 'i want meet').action, 'open_calendar');
   assert.equal(
     validateModelResponse(bookingResult, 'I would like to book a discovery call to discuss my mobile app idea.').action,
     'open_calendar',
   );
+});
+
+test('uses established conversation intent for short booking follow-ups', () => {
+  const conversation = {
+    lastIntent: 'meeting',
+    booking: { requested: true },
+    recentMessages: [
+      { role: 'user', text: 'I want to schedule a discovery call with DEKODE.' },
+      { role: 'model', text: 'I can help you arrange that.' },
+    ],
+  };
+  assert.equal(validateModelResponse(bookingResult, 'book again', { conversation }).action, 'open_calendar');
+  assert.equal(validateModelResponse(bookingResult, 'yes', { conversation }).action, 'open_calendar');
+});
+
+test('current product-building intent overrides older booking context', () => {
+  const result = validateModelResponse(bookingResult, 'Now I want to build a meeting app', {
+    conversation: { lastIntent: 'meeting', booking: { requested: true } },
+  });
+  assert.equal(result.intent, 'project_build');
+  assert.equal(result.action, 'show_project_panel');
+});
+
+test('asks only genuinely unresolved meeting wording for clarification', () => {
+  const result = validateModelResponse(bookingResult, 'meeting');
+  assert.equal(result.intent, 'clarification');
+  assert.equal(result.action, 'ask_clarification');
+  assert.doesNotMatch(result.answer, /meeting\/calendar app/i);
 });
 
 test('preserves a resolved booking decision from a contextual suggestion', () => {

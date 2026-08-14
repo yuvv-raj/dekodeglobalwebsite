@@ -1,4 +1,4 @@
-import { MEETING_PROJECT_CLARIFICATION, scoreCompetingIntents } from './intentClassifier.js';
+import { resolveCalendarIntent, scoreCompetingIntents } from './intentClassifier.js';
 import { getSensitiveRequestRefusal } from './safetyResponse.js';
 
 export const MODEL_INTENTS = [
@@ -87,17 +87,16 @@ export function validateModelResponse(candidate, originalMessage, context = {}) 
   };
   if (!result.answer) throw new Error('MODEL_RESPONSE_ANSWER_MISSING');
 
-  const competing = scoreCompetingIntents(originalMessage);
-  const selectedSuggestion = context?.interaction?.type === 'suggestion'
-    ? context.interaction
-    : null;
-  const resolvedBookingSelection = selectedSuggestion?.intent === 'book_meeting'
-    || selectedSuggestion?.action === 'open_calendar';
-
   if (result.action === 'open_calendar') {
-    if (competing.route === 'project') {
+    const calendarRoute = resolveCalendarIntent(originalMessage, context);
+    if (calendarRoute === 'project') {
       result.intent = 'project_build';
       result.action = 'show_project_panel';
+    } else if (calendarRoute === 'clarify') {
+      result.intent = 'clarification';
+      result.action = 'ask_clarification';
+      result.topic = 'meeting intent';
+      result.answer = 'Would you like to arrange time with the DEKODE team, or are you planning meeting or booking functionality for a product?';
     }
   }
 

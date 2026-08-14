@@ -1,7 +1,6 @@
 import {
   generateCompanyResponse,
   getSensitiveRequestRefusal,
-  MEETING_PROJECT_CLARIFICATION,
 } from '../knowledge/index.js';
 import { classifyVoiceIntent } from './voiceIntentClassifier.js';
 import { extractLeadProfile, getNextQualificationQuestion } from './leadQualificationManager.js';
@@ -44,7 +43,7 @@ export class KnowledgeConversationProvider {
     }
     if (classification.intent === 'meeting_project_clarification') {
       return {
-        text: MEETING_PROJECT_CLARIFICATION,
+        text: 'I can help either way. Are you trying to arrange time with DEKODE, or add meeting and scheduling functionality to something you are building?',
         topic: 'project', panel: 'services', intent: classification.intent, leadProfile,
       };
     }

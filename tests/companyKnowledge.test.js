@@ -6,7 +6,6 @@ import {
   generateCompanyResponse,
   generateProjectResponse,
   getSensitiveRequestRefusal,
-  MEETING_PROJECT_CLARIFICATION,
   normalizeVisitorMessage,
   rememberCompanyTurn,
 } from '../src/knowledge/index.js';
@@ -110,10 +109,6 @@ test('keeps scheduling-product requests out of the DEKODE booking flow', () => {
 
   const ambiguous = classifyCompanyIntent('Can I schedule a meeting app?');
   assert.equal(ambiguous.kind, 'meeting_project_ambiguous');
-  assert.equal(
-    MEETING_PROJECT_CLARIFICATION,
-    'Do you want to book a discovery call with DEKODE, or are you looking to build a meeting/calendar app?',
-  );
 });
 
 test('normalizes common visitor misspellings and shorthand before routing', () => {
@@ -122,7 +117,9 @@ test('normalizes common visitor misspellings and shorthand before routing', () =
   assert.equal(normalizeVisitorMessage('do u make ecomerce?'), 'do you make ecommerce');
   assert.equal(normalizeVisitorMessage('book ameeting'), 'book a meeting');
   assert.equal(normalizeVisitorMessage('bookameeting'), 'book a meeting');
-  assert.equal(normalizeVisitorMessage('metting meating meetng'), 'meeting meeting meeting');
+  assert.equal(normalizeVisitorMessage('meting metting meating meetng'), 'meeting meeting meeting meeting');
+  assert.equal(normalizeVisitorMessage('show me some of ur woek'), 'show me some of your work');
+  assert.equal(normalizeVisitorMessage('bok a meting'), 'book a meeting');
   assert.equal(normalizeVisitorMessage('schedual a calender call'), 'schedule a calendar call');
 
   assert.equal(classifyCompanyIntent('need ai for my bussiness').kind, 'project');

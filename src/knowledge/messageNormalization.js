@@ -1,7 +1,8 @@
 const REPLACEMENTS = [
   [/\bbookameeting\b/g, 'book a meeting'],
   [/\bameeting\b/g, 'a meeting'],
-  [/\b(?:metting|meating|meetng)\b/g, 'meeting'],
+  [/\b(?:meting|metting|meating|meetng)\b/g, 'meeting'],
+  [/\b(?:bok|boook)\b/g, 'book'],
   [/\bcalanders?\b|\bcalenders?\b/g, 'calendar'],
   [/\bscheduals?\b/g, 'schedule'],
   [/\bbussiness(?:es)?\b/g, 'business'],
@@ -13,6 +14,8 @@ const REPLACEMENTS = [
   [/\bautomashun\b/g, 'automation'],
   [/\bmordern(?:ise|ize)?\b/g, 'modernise'],
   [/\battendence\b/g, 'attendance'],
+  [/\bwoek\b/g, 'work'],
+  [/\bur\b/g, 'your'],
   [/\bu\b/g, 'you'],
 ];
 

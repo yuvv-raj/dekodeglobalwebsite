@@ -165,6 +165,67 @@ test('post-model validation blocks calendar actions for product-building request
   });
 });
 
+test('preserves a typed booking decision across an informal follow-up', async () => {
+  await withDirectGemini(async () => ({
+    ok: true,
+    status: 200,
+    json: async () => modelPayload({
+      intent: 'book_meeting', confidence: 0.95, action: 'open_calendar', topic: 'booking', answer: 'Choose another convenient time.',
+    }),
+  }), async () => {
+    const conversation = {
+      sessionId: 'typed-booking-memory',
+      lastIntent: 'meeting',
+      booking: { requested: true },
+      recentMessages: [
+        { role: 'user', text: 'I want to schedule a call with DEKODE.' },
+        { role: 'model', text: 'I can open the calendar.' },
+      ],
+    };
+    const response = await ask('book again', 'booking-memory', conversation);
+    assert.equal(response.body.action, 'open_calendar');
+    assert.deepEqual(response.body.actions, [{ type: 'open_booking', label: 'View available times' }]);
+  });
+});
+
+test('rejects invented DEKODE projects and falls back to verified portfolio knowledge', async () => {
+  await withDirectGemini(async () => ({
+    ok: true,
+    status: 200,
+    json: async () => modelPayload({
+      intent: 'case_study',
+      confidence: 0.96,
+      action: 'show_company_panel',
+      topic: 'portfolio',
+      answer: '- Department of Defense tax platform\n- Military logistics command system\n- Clinical decision support platform',
+      suggestions: [{ label: 'Military case study', prompt: 'Tell me about the military project.' }],
+    }),
+  }), async () => {
+    const response = await ask('show me some of ur woek', 'portfolio-grounding');
+    assert.equal(response.body.provider, 'verified-grounding-fallback');
+    assert.equal(response.body.grounding, 'fallback');
+    assert.match(response.body.answer, /AttendMe/i);
+    assert.match(response.body.answer, /CHAUFFR/i);
+    assert.doesNotMatch(response.body.answer, /Defense|military|clinical|tax platform/i);
+    assert.deepEqual(response.body.suggestions, []);
+  });
+});
+
+test('rejects unsupported company claims outside portfolio questions', async () => {
+  await withDirectGemini(async () => ({
+    ok: true,
+    status: 200,
+    json: async () => modelPayload({
+      intent: 'company_info', confidence: 0.95, action: 'show_company_panel', topic: 'services', answer: 'DEKODE operates military satellites and national tax systems.',
+    }),
+  }), async () => {
+    const response = await ask('services', 'company-grounding');
+    assert.equal(response.body.provider, 'verified-grounding-fallback');
+    assert.match(response.body.answer, /AI Strategy/i);
+    assert.doesNotMatch(response.body.answer, /military|satellites|national tax/i);
+  });
+});
+
 
 
 test('a short yes reaches Gemini with recent conversation context', async () => {
@@ -244,12 +305,12 @@ test('retries a transient Gemini failure before returning an answer', async () =
       ok: true,
       status: 200,
       json: async () => modelPayload({
-        intent: 'company_info', confidence: 0.9, action: 'show_company_panel', topic: 'services', answer: 'Recovered answer.',
+        intent: 'company_info', confidence: 0.9, action: 'show_company_panel', topic: 'services', answer: 'DEKODE services include AI strategy and custom AI development.',
       }),
     };
   }, async () => {
     const response = await ask('services', 'retry-model-first');
-    assert.equal(response.body.answer, 'Recovered answer.');
+    assert.equal(response.body.answer, 'DEKODE services include AI strategy and custom AI development.');
   });
   assert.equal(calls, 2);
 });
