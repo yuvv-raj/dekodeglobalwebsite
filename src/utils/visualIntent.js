@@ -12,12 +12,12 @@ const VISUAL_FEATURES = [
   ['Gallery', /\b(art|artist|artwork|gallery|portfolio|showcase|catalogue|catalog)\b/i],
   ['Donations', /\b(donat(?:e|ion|ions)|fundrais(?:e|ing)|contribution)\b/i],
   ['Payments', /\b(payment|pay|checkout|card|transaction|purchase|buy)\b/i],
-  ['Accounts', /\b(account|login|sign[ -]?in|profile|member)\b/i],
+  ['Accounts', /\b(accounts?|logins?|sign[ -]?in|profiles?|members?)\b/i],
   ['Search', /\b(search|filter|discover|find)\b/i],
   ['Content', /\b(content|upload|publish|post|article|blog)\b/i],
   ['Admin', /\b(admin|manage|management|dashboard|report)\b/i],
   ['Bookings', /\b(book|booking|appointment|reservation|schedule)\b/i],
-  ['Notifications', /\b(notification|alert|email|message|reminder)\b/i],
+  ['Notifications', /\b(notifications?|alerts?|emails?|messages?|reminders?)\b/i],
   ['Security', /\b(security|secure|permission|privacy|authentication)\b/i],
 ];
 

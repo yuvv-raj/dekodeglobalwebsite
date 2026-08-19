@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Send,
   CheckCircle2,
-  Bot,
   Mic,
   CalendarDays,
   ChevronDown,
@@ -25,8 +24,7 @@ const LinkedInIcon = ({ size = 13, ...props }) => (
     <path d="M4.98 3.5c0 1.381-1.11 2.5-2.48 2.5s-2.48-1.119-2.48-2.5c0-1.38 1.11-2.5 2.48-2.5s2.48 1.12 2.48 2.5zm.02 4.5h-5v16h5v-16zm7.982 0h-4.968v16h4.969v-8.399c0-4.67 6.029-5.052 6.029 0v8.399h4.988v-10.131c0-7.88-8.922-7.593-11.018-3.714v-2.155z" />
   </svg>
 );
-import AnimationPanel from "./AnimationPanel";
-import CompanyKnowledgePanel from "./CompanyKnowledgePanel";
+import NarrativeVisualPanel from "./NarrativeVisualPanel";
 import ParticleBackground from "./ParticleBackground";
 import TypewriterText, { FormattedText } from "./TypewriterText";
 import HeroScenery from "./HeroScenery";
@@ -60,6 +58,7 @@ import {
 } from "../content/ContentToChatBridge";
 import { toLocalDateKey } from "../utils/calendarPresentation";
 import { cleanAssistantText, buildCleanProjectSummary } from "../utils/assistantText";
+import { resolveNarrativeScene } from "../utils/narrativeVisual";
 
 function getTimeAwareGreeting(date = new Date()) {
   const hour = date.getHours();
@@ -111,7 +110,7 @@ const PROJECT_OPTION_ROWS = [
   PROJECT_OPTIONS,
 ];
 
-export const SUPPORTING_VISUAL_PANEL_ENABLED = false;
+export const SUPPORTING_VISUAL_PANEL_ENABLED = true;
 
 export default function ChatApp({
   proposalContext = null,
@@ -177,14 +176,10 @@ export default function ChatApp({
   const [projectType, setProjectType] = useState(null);
   const [gatheredTags, setGatheredTags] = useState([]);
   const [companyPanel, setCompanyPanel] = useState(null);
-  const [meetingSlots, setMeetingSlots] = useState([]);
   const [selectedMeetingDateKey, setSelectedMeetingDateKey] = useState("");
   const [selectedMeetingSlotId, setSelectedMeetingSlotId] = useState(null);
   const [isVoiceOpen, setIsVoiceOpen] = useState(false);
   const [isVisualPanelExpanded, setIsVisualPanelExpanded] = useState(false);
-  const [isCompactLayout, setIsCompactLayout] = useState(
-    () => window.matchMedia("(max-width: 1180px)").matches,
-  );
 
   const scrollRef = useRef(null);
   const composerRef = useRef(null);
@@ -298,13 +293,6 @@ export default function ChatApp({
   }, [messages, isTyping, step, isListening]);
 
   useEffect(() => {
-    const media = window.matchMedia("(max-width: 1180px)");
-    const updateLayoutMode = (event) => setIsCompactLayout(event.matches);
-    media.addEventListener("change", updateLayoutMode);
-    return () => media.removeEventListener("change", updateLayoutMode);
-  }, []);
-
-  useEffect(() => {
     const constrainedHeight = window.matchMedia("(max-height: 640px)");
     const collapseForKeyboardOrLandscape = (event) => {
       if (event.matches) setIsVisualPanelExpanded(false);
@@ -348,7 +336,6 @@ export default function ChatApp({
     setCompanyPanel(null);
     setProjectType('Discovery Call');
     setGatheredTags(['Meeting']);
-    setMeetingSlots([]);
     setSelectedMeetingDateKey("");
     setSelectedMeetingSlotId(null);
     setConversationMemory((current) => {
@@ -374,7 +361,6 @@ export default function ChatApp({
   };
 
   const handleMeetingSlotsChange = useCallback((nextSlots) => {
-    setMeetingSlots(nextSlots);
     setSelectedMeetingDateKey((currentKey) => (
       nextSlots.some((slot) => toLocalDateKey(slot.iso) === currentKey) ? currentKey : ""
     ));
@@ -390,83 +376,6 @@ export default function ChatApp({
   const handleMeetingDateSelect = useCallback((dateKey) => {
     setSelectedMeetingDateKey(dateKey || "");
   }, []);
-
-  const handleCompanyPrompt = async (userMessage) => {
-    if (!userMessage.trim() || isTyping) return;
-
-    const intent = classifyCompanyIntent(
-      userMessage,
-      companyContextRef.current,
-    );
-    const fallbackResponse = generateCompanyResponse(userMessage, {
-      ...intent,
-      isCompanyRelated: true,
-      topic: intent.topic || companyContextRef.current.lastTopic || "company",
-    });
-    const fallbackTurn = beginConversationTurn(conversationMemory, userMessage, intent.kind);
-    const fallbackDirective = buildConversationDirective(fallbackTurn);
-
-    setMessages((prev) => [
-      ...prev,
-      { id: Date.now(), sender: "user", text: userMessage },
-    ]);
-    if (step === "centered" || step === "done") setStep("company");
-    companyContextRef.current = rememberCompanyTurn(
-      companyContextRef.current,
-      fallbackResponse.topic,
-    );
-    setCompanyPanel(fallbackResponse);
-    setIsTyping(true);
-
-    try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          question: userMessage,
-          conversation: conversationMemory,
-          usedSuggestions: messages
-            .flatMap((message) => message.suggestions || [])
-            .filter((suggestion) => !suggestion.url)
-            .map((suggestion) => suggestion.label)
-            .slice(-8),
-        }),
-      });
-      const result = await response.json();
-      if (!response.ok || !result.answer) throw new Error(result.error);
-      if (result.conversation) setConversationMemory(result.conversation);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now(),
-          sender: "ai",
-          text: cleanAssistantText(result.answer),
-          companyTopic: fallbackResponse.topic,
-          suggestions: result.suggestions || [],
-          actions: result.actions || [],
-          evidenceAccordion: result.evidenceAccordion || null,
-        },
-      ]);
-    } catch {
-      setConversationMemory(completeConversationTurn(
-        fallbackTurn,
-        fallbackResponse.text,
-        fallbackDirective,
-      ));
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now(),
-          sender: "ai",
-          text: cleanAssistantText(fallbackResponse.text),
-          companyTopic: fallbackResponse.topic,
-          suggestions: [],
-        },
-      ]);
-    } finally {
-      setIsTyping(false);
-    }
-  };
 
   const handleModelPrompt = async (userMessage, interaction = null) => {
     if (!userMessage.trim() || isTyping) return;
@@ -826,25 +735,36 @@ export default function ChatApp({
     setInputValue(draft);
   };
 
-  const getAnimationLevel = () => {
-    if (step === "centered") return 0;
-    if (step === "scheduling" || step === "done") return 4;
-    return 1;
-  };
-
   const isBookingExperience = projectType === "Discovery Call" && ["scheduling", "done"].includes(step);
-  const hasSupportingVisual = SUPPORTING_VISUAL_PANEL_ENABLED && Boolean(companyPanel || projectType);
+  const narrativeScene = useMemo(() => resolveNarrativeScene({
+    messages,
+    topic: companyPanel?.topic || "",
+    projectType,
+    conversationSummary: conversationMemory.summary,
+    bookingActive: isBookingExperience,
+    bookingComplete: step === "done",
+  }), [
+    companyPanel?.topic,
+    conversationMemory.summary,
+    isBookingExperience,
+    messages,
+    projectType,
+    step,
+  ]);
+  const hasSupportingVisual = SUPPORTING_VISUAL_PANEL_ENABLED
+    && step !== "centered"
+    && step !== "proposal";
 
   const renderAnimationCard = (classNameExt = "") => (
     <motion.div
       initial={{ x: 100, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       transition={{ delay: 0.3, duration: 0.6, type: "spring", damping: 20 }}
-      className={`floating-animation-panel ${classNameExt} ${isBookingExperience ? "booking-summary-panel" : ""} ${isVisualPanelExpanded ? "visual-panel-expanded" : "visual-panel-collapsed"}`}
+      className={`floating-animation-panel ${classNameExt} ${isVisualPanelExpanded ? "visual-panel-expanded" : "visual-panel-collapsed"}`}
     >
       <div className="anim-header">
         <span className="anim-title">
-          <Bot
+          <Sparkles
             size={16}
             style={{
               display: "inline",
@@ -852,14 +772,9 @@ export default function ChatApp({
               verticalAlign: "text-bottom",
             }}
           />
-          {companyPanel ? "Company Knowledge" : isBookingExperience ? "Booking Summary" : "Building Context"}
+          {narrativeScene.title}
         </span>
         <div className="anim-header-actions">
-          <div className="anim-window-dots" aria-hidden="true">
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
           <button
             type="button"
             className="visual-panel-toggle"
@@ -876,83 +791,15 @@ export default function ChatApp({
         </div>
       </div>
 
-      {/* Requirement Tags & Progress Bar */}
-      {!isBookingExperience && <div
-        className="anim-body-container"
-        style={{
-          padding: "1rem",
-          borderBottom: "1px solid rgba(255,255,255,0.05)",
-          display: "flex",
-          flexDirection: "column",
-          gap: "0.8rem",
-        }}
-      >
-        {companyPanel ? (
-          <motion.div
-            key={companyPanel.topic}
-            initial={{ opacity: 0, x: -8 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="knowledge-topic-label"
-          >
-            <span className="knowledge-live-dot" />
-             {companyPanel.topic === "why" ? "Why DEKODE" : companyPanel.topic.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-          </motion.div>
-        ) : (
-          <>
-            {/* Tag Chips */}
-            <div
-              className="tags-container"
-              style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}
-            >
-              <AnimatePresence>
-                {gatheredTags.map((tag) => (
-                  <motion.div
-                    key={tag}
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                    style={{
-                      background: "rgba(53, 118, 193, 0.3)",
-                      border: "1px solid rgba(53, 118, 193, 0.5)",
-                      borderRadius: "12px",
-                      padding: "2px 8px",
-                      fontSize: "0.75rem",
-                      color: "#60a5fa",
-                    }}
-                  >
-                    {tag}
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </div>
-          </>
-        )}
-      </div>}
-
       <div
         className="anim-content"
         id="supporting-visual-content"
-        aria-hidden={isCompactLayout && !isVisualPanelExpanded}
-        inert={isCompactLayout && !isVisualPanelExpanded ? true : undefined}
       >
         <div className="anim-scale-wrapper">
-          {companyPanel ? (
-            <CompanyKnowledgePanel
-              panel={companyPanel.panel}
-              onSelect={handleCompanyPrompt}
-            />
-          ) : (
-            <AnimationPanel
-              projectType={projectType}
-              level={getAnimationLevel()}
-              messages={messages}
-              meetingSlots={meetingSlots}
-              selectedMeetingDateKey={selectedMeetingDateKey}
-              selectedMeetingSlotId={selectedMeetingSlotId}
-              bookingComplete={step === "done"}
-              conversationSummary={conversationMemory.summary}
-            />
-          )}
+          <NarrativeVisualPanel
+            scene={narrativeScene}
+            bookingComplete={step === "done"}
+          />
         </div>
       </div>
     </motion.div>

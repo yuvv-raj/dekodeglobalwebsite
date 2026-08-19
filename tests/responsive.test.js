@@ -15,6 +15,7 @@ const meetingScheduler = await readFile(new URL('../src/components/MeetingSchedu
 const bookingSummary = await readFile(new URL('../src/components/BookingSummary.jsx', import.meta.url), 'utf8');
 const typewriterText = await readFile(new URL('../src/components/TypewriterText.jsx', import.meta.url), 'utf8');
 const companyKnowledgePanel = await readFile(new URL('../src/components/CompanyKnowledgePanel.jsx', import.meta.url), 'utf8');
+const narrativeVisualPanel = await readFile(new URL('../src/components/NarrativeVisualPanel.jsx', import.meta.url), 'utf8');
 
 test('uses dynamic viewport units and safe-area spacing for app and voice surfaces', () => {
   assert.match(indexCss, /height:\s*100dvh/);
@@ -23,13 +24,25 @@ test('uses dynamic viewport units and safe-area spacing for app and voice surfac
   assert.match(voiceCss, /env\(safe-area-inset-bottom\)/);
 });
 
-test('keeps the visual panel restorable while disabling it in the current chat layout', () => {
+test('enables one responsive supporting visual without duplicating chat knowledge cards', () => {
   assert.equal((chatApp.match(/renderAnimationCard\('responsive-visual-panel'\)/g) || []).length, 1);
-  assert.match(chatApp, /SUPPORTING_VISUAL_PANEL_ENABLED = false/);
-  assert.match(chatApp, /SUPPORTING_VISUAL_PANEL_ENABLED && Boolean/);
+  assert.match(chatApp, /SUPPORTING_VISUAL_PANEL_ENABLED = true/);
+  assert.match(chatApp, /SUPPORTING_VISUAL_PANEL_ENABLED[\s\S]*step !== "centered"/);
+  assert.match(chatApp, /<NarrativeVisualPanel/);
+  assert.doesNotMatch(chatApp, /<CompanyKnowledgePanel/);
   assert.doesNotMatch(chatApp, /renderAnimationCard\('mobile-only'\)/);
   assert.doesNotMatch(indexCss, /width:\s*600px\s*!important/);
   assert.doesNotMatch(indexCss, /\bzoom\s*:/);
+});
+
+test('renders an adaptive Three.js narrative with reduced-motion support', () => {
+  assert.match(narrativeVisualPanel, /<Canvas/);
+  assert.match(narrativeVisualPanel, /frameloop=\{reducedMotion \? 'demand' : 'always'\}/);
+  assert.match(narrativeVisualPanel, /useReducedMotion/);
+  assert.match(narrativeVisualPanel, /BridgeScene/);
+  assert.match(narrativeVisualPanel, /StarScene/);
+  assert.match(indexCss, /\.narrative-canvas\s*\{[^}]*min-height:\s*300px/s);
+  assert.match(indexCss, /visual-panel-collapsed \.narrative-canvas\s*\{[^}]*height:\s*112px/s);
 });
 
 test('provides content-driven breakpoints, touch targets, and reduced motion', () => {
@@ -153,7 +166,7 @@ test('guides booking from date to time, summary, and details', () => {
   assert.match(meetingScheduler, /<span>Phone number <i aria-hidden="true">\*<\/i><\/span>\s*<input required type="tel"/);
   assert.match(meetingScheduler, /const isFormComplete = Boolean/);
   assert.match(meetingScheduler, /disabled=\{!canSubmit\}/);
-  assert.match(chatApp, /meetingSlots=\{meetingSlots\}/);
+  assert.match(chatApp, /onSlotsChange=\{handleMeetingSlotsChange\}/);
   assert.match(chatApp, /selectedDateKey=\{selectedMeetingDateKey\}/);
   assert.match(chatApp, /selectedSlotId=\{selectedMeetingSlotId\}/);
   assert.match(meetingScheduler, /onSlotsChange\?\.\(nextSlots\)/);
@@ -197,7 +210,7 @@ test('keeps consent aligned and resumes normal chat after booking', () => {
   assert.match(chatApp, /activateMeetingScheduler\(\)/);
   assert.doesNotMatch(chatApp, /readOnly:\s*step === "scheduling"/);
   assert.doesNotMatch(chatApp, /if \(step === "scheduling" \|\| isTyping\) return/);
-  assert.match(chatApp, /if \(step === "centered" \|\| step === "done"\) setStep\("company"\)/);
+  assert.match(chatApp, /const handleSendMessage[\s\S]*handleModelPrompt\(userMessage\)/);
   assert.match(chatApp, /We have sent the invitation and meeting details to your email/);
   assert.doesNotMatch(chatApp, /Google Calendar has sent the invitation/);
 });

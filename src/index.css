@@ -1093,14 +1093,15 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Floating Animation Panel */
 .floating-animation-panel {
-  width: 400px;
-  margin: 6rem 2rem 2rem 0;
-  background: rgba(15, 23, 42, 0.4);
+  width: 420px;
+  max-height: min(580px, calc(100dvh - 8rem));
+  margin: auto 2rem auto 0;
+  background: rgba(7, 16, 30, 0.22);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 24px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  box-shadow: 0 24px 52px -28px rgba(0, 0, 0, 0.58);
   display: flex;
   flex-direction: column;
   position: relative;
@@ -1119,18 +1120,12 @@ h1, h2, h3, h4, h5, h6 {
   gap: 0.75rem;
 }
 
-.anim-header-actions,
-.anim-window-dots {
+.anim-header-actions {
   display: flex;
   align-items: center;
 }
 
 .anim-header-actions { gap: 0.65rem; }
-.anim-window-dots { gap: 4px; }
-.anim-window-dots span { width: 8px; height: 8px; border-radius: 50%; }
-.anim-window-dots span:nth-child(1) { background: #ef4444; }
-.anim-window-dots span:nth-child(2) { background: #eab308; }
-.anim-window-dots span:nth-child(3) { background: #22c55e; }
 
 .visual-panel-toggle {
   display: none;
@@ -1159,7 +1154,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .anim-content {
   flex: 1;
-  padding: 2rem;
+  padding: 0;
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -1172,6 +1167,71 @@ h1, h2, h3, h4, h5, h6 {
   display: flex;
   justify-content: center;
   align-items: flex-start;
+}
+
+.narrative-visual {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-rows: minmax(260px, 1fr) auto auto;
+  align-content: stretch;
+}
+
+.narrative-canvas {
+  width: 100%;
+  min-height: 300px;
+  position: relative;
+  overflow: hidden;
+}
+
+.narrative-canvas canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  background: transparent;
+}
+
+.narrative-webgl-fallback {
+  width: 100%;
+  height: 100%;
+  border-block: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.narrative-copy {
+  display: grid;
+  gap: 0.32rem;
+  padding: 0.2rem 1.25rem 1rem;
+}
+
+.narrative-copy span {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.narrative-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.75rem;
+  padding: 0 1.25rem 1.25rem;
+}
+
+.narrative-labels span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.68rem;
+}
+
+.narrative-labels i {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 6px;
+  border-radius: 50%;
+  background: var(--label-accent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--label-accent), transparent 30%);
 }
 
 /* Company knowledge layer: extends the existing glass panel */
@@ -2322,9 +2382,9 @@ h1, h2, h3, h4, h5, h6 {
     transition: max-height 0.25s ease;
   }
 
-  .responsive-visual-panel.visual-panel-collapsed { max-height: 54px; }
-  .responsive-visual-panel.visual-panel-collapsed .anim-body-container,
-  .responsive-visual-panel.visual-panel-collapsed .anim-content { display: none; }
+  .responsive-visual-panel.visual-panel-collapsed { max-height: 166px; }
+  .responsive-visual-panel.visual-panel-collapsed .narrative-copy,
+  .responsive-visual-panel.visual-panel-collapsed .narrative-labels { display: none; }
 
   .booking-summary-panel.visual-panel-collapsed { max-height: min(46dvh, 430px); }
   .booking-summary-panel.visual-panel-collapsed .anim-content { display: flex; }
@@ -2334,11 +2394,25 @@ h1, h2, h3, h4, h5, h6 {
   .responsive-visual-panel .anim-header { min-height: 52px; padding: 0.35rem 0.8rem; }
   .responsive-visual-panel .anim-body-container { padding: 0.6rem 0.8rem !important; gap: 0.45rem !important; }
   .responsive-visual-panel .anim-content {
-    padding: 0.75rem;
-    overflow: auto;
+    padding: 0;
+    overflow: hidden;
     align-items: flex-start;
   }
   .responsive-visual-panel .anim-scale-wrapper { min-height: 0; }
+  .responsive-visual-panel .narrative-visual {
+    grid-template-rows: minmax(220px, 1fr) auto auto;
+  }
+  .responsive-visual-panel .narrative-canvas {
+    min-height: 220px;
+    height: 220px;
+  }
+  .responsive-visual-panel.visual-panel-collapsed .narrative-visual {
+    grid-template-rows: 112px;
+  }
+  .responsive-visual-panel.visual-panel-collapsed .narrative-canvas {
+    min-height: 112px;
+    height: 112px;
+  }
 
   .chat-scroll-area { padding-top: 5.25rem; }
   .chat-header {
